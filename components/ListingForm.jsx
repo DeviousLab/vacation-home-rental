@@ -4,8 +4,10 @@ import PropTypes from 'prop-types';
 import * as Yup from 'yup';
 import { toast } from 'react-hot-toast';
 import { Formik, Form } from 'formik';
-import Input from '@/components/Input';
-import ImageUpload from '@/components/ImageUpload';
+import axios from 'axios';
+
+import Input from '../components/Input';
+import ImageUpload from '../components/ImageUpload';
 
 const ListingSchema = Yup.object().shape({
   title: Yup.string().trim().required(),
@@ -28,7 +30,21 @@ const ListingForm = ({
   const [imageUrl, setImageUrl] = useState(initialValues?.image ?? '');
 
   const upload = async image => {
-    // TODO: Upload image to remote storage
+      if (!image) return;
+  
+      let toastId;
+      try {
+        setDisabled(true);
+        toastId = toast.loading('Uploading...');
+        const { data } = await axios.post('/api/upload-image', { image });
+        setImageUrl(data?.url);
+        toast.success('Successfully uploaded', { id: toastId });
+      } catch (e) {
+        toast.error('Unable to upload', { id: toastId });
+        setImageUrl('');
+      } finally {
+        setDisabled(false);
+      }
   };
 
   const handleOnSubmit = async (values = null) => {
@@ -36,12 +52,10 @@ const ListingForm = ({
     try {
       setDisabled(true);
       toastId = toast.loading('Submitting...');
-      // Submit data
       if (typeof onSubmit === 'function') {
         await onSubmit({ ...values, image: imageUrl });
       }
       toast.success('Successfully submitted', { id: toastId });
-      // Redirect user
       if (redirectPath) {
         router.push(redirectPath);
       }
