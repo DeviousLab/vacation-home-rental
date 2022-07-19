@@ -1,11 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { decode } from 'base64-arraybuffer';
 import { nanoid } from 'nanoid';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+import { supabase } from '@/lib/supabase';
 
 export const config = {
   api: {
