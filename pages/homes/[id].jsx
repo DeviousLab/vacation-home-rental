@@ -1,10 +1,55 @@
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Layout from '@/components/Layout';
-import { PrismaClient } from '@prisma/client';
+import { getSession } from 'next-auth/react';
+import { createClient } from '@supabase/supabase-js';
+import { useSession } from 'next-auth/react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import { useRouter } from 'next/router';
 
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
 const ListedHome = (home = null) => {
+  const { data: session } = useSession();
+  const [isOwner, setIsOwner] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      if (session?.user) {
+        try {
+          const owner = await axios.get(`/api/homes/${home.id}/owner`);
+          setIsOwner(owner?.id === session.user.id);
+        } catch (e) {
+          setIsOwner(false);
+        }
+      }
+    })();
+  }, [session?.user]);
+
+  const router = useRouter();
+
+  const deleteHome = async () => {
+    let toastId;
+    try {
+      toastId = toast.loading('Deleting...');
+      setDeleting(true);
+      await axios.delete(`/api/homes/${home.id}`);
+      toast.success('Successfully deleted', { id: toastId });
+      router.push('/homes');
+    } catch (e) {
+      console.log(e);
+      toast.error('Unable to delete home', { id: toastId });
+      setDeleting(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="max-w-screen-lg mx-auto">
@@ -27,6 +72,25 @@ const ListedHome = (home = null) => {
               </li>
             </ol>
           </div>
+          {isOwner ? (
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => router.push(`/homes/${home.id}/edit`)}
+                className="px-4 py-1 border border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition rounded-md disabled:text-gray-800 disabled:bg-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Edit
+              </button>
+
+              <button
+                type="button"
+                onClick={deleteHome}
+                className="rounded-md border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white focus:outline-none transition disabled:bg-rose-500 disabled:text-white disabled:opacity-50 disabled:cursor-not-allowed px-4 py-1"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-6 relative aspect-w-16 aspect-h-9 bg-gray-200 rounded-lg shadow-md overflow-hidden">
@@ -50,7 +114,6 @@ export async function getStaticPaths() {
   const homes = await prisma.home.findMany({
     select: { id: true },
   });
-
   return {
     paths: homes.map(home => ({
       params: { id: home.id },
@@ -63,19 +126,64 @@ export async function getStaticProps({ params }) {
   const home = await prisma.home.findUnique({
     where: { id: params.id },
   });
-
   if (home) {
     return {
       props: JSON.parse(JSON.stringify(home)),
     };
   }
-
   return {
     redirect: {
       destination: '/',
       permanent: false,
     },
   };
+}
+
+export async function handler(req, res) {
+  const session = await getSession({ req });
+  if (!session) {
+    return res.status(401).json({ message: 'Unauthorized.' });
+  }
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { listedHomes: true },
+  });
+  const { id } = req.query;
+  if (!user?.listedHomes?.find(home => home.id === id)) {
+    return res.status(401).json({ message: 'Unauthorized.' });
+  }
+
+  if (req.method === 'PATCH') {
+    try {
+      const home = await prisma.home.update({
+        where: { id },
+        data: req.body,
+      });
+      res.status(200).json(home);
+    } catch (e) {
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+  }
+  else if (req.method === 'DELETE') {
+    try {
+      const home = await prisma.home.delete({
+        where: { id },
+      });
+      if (home.image) {
+        const path = home.image.split(`${process.env.SUPABASE_BUCKET}/`)?.[1];
+        await supabase.storage.from(process.env.SUPABASE_BUCKET).remove([path]);
+      }
+      res.status(200).json(home);
+    } catch (e) {
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+  }
+  else {
+    res.setHeader('Allow', ['PATCH', 'DELETE']);
+    res
+      .status(405)
+      .json({ message: `HTTP method ${req.method} is not supported.` });
+  }
 }
 
 export default ListedHome;
