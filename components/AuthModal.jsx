@@ -92,7 +92,11 @@ const AuthModal = ({ show = false, onClose = () => null }) => {
   };
 
   const signInWithGoogle = () => {
-    // TODO: Perform Google auth
+    toast.loading('Redirecting...');
+    setDisabled(true);
+    signIn('google', {
+      callbackUrl: window.location.href,
+    });
   };
 
   const closeModal = () => {

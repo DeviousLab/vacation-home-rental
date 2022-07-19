@@ -6,25 +6,9 @@ import { PrismaClient } from '@prisma/client';
 import Handlebars from 'handlebars';
 import { readFileSync } from 'fs';
 import path from 'path';
+import GoogleProvider from 'next-auth/providers/google';
 
 const prisma = new PrismaClient();
-
-export default NextAuth({
-  pages: {
-    signIn: '/api/auth/signin',
-    signOut: '/api/auth/signout',
-    error: '/api/auth/error',
-    verifyRequest: '/api/auth/verify-request',
-  },
-  providers: [
-    EmailProvider({
-      sendVerificationRequest,
-      maxAge: 10 * 60,
-    }),
-  ],
-  adapter: PrismaAdapter(prisma),
-  events: { createUser: sendWelcomeEmail },
-});
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_SERVER_HOST,
@@ -76,3 +60,24 @@ const sendWelcomeEmail = async ({ user }) => {
     console.log(`❌ Unable to send welcome email to user (${email})`);
   }
 };
+
+export default NextAuth({
+  pages: {
+    signIn: '/api/auth/signin',
+    signOut: '/api/auth/signout',
+    error: '/api/auth/error',
+    verifyRequest: '/api/auth/verify-request',
+  },
+  providers: [
+    EmailProvider({
+      sendVerificationRequest,
+      maxAge: 10 * 60,
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_ID,
+      clientSecret: process.env.GOOGLE_SECRET,
+    })
+  ],
+  adapter: PrismaAdapter(prisma),
+  events: { createUser: sendWelcomeEmail },
+});
