@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_SERVER_USER,
     pass: process.env.EMAIL_SERVER_PASSWORD,
   },
-  secure: true,
+  secure: false,
 });
 
 const emailsDir = path.resolve(process.cwd(), 'emails');
@@ -63,10 +63,10 @@ const sendWelcomeEmail = async ({ user }) => {
 
 export default NextAuth({
   pages: {
-    signIn: '/api/auth/signin',
-    signOut: '/api/auth/signout',
-    error: '/api/auth/error',
-    verifyRequest: '/api/auth/verify-request',
+    signIn: '/',
+    signOut: '/',
+    error: '/',
+    verifyRequest: '/',
   },
   providers: [
     EmailProvider({
