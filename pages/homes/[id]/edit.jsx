@@ -5,7 +5,7 @@ import axios from 'axios';
 
 import { prisma } from '@/lib/prisma';
 
-const Edit = () => {
+const Edit = (home = null) => {
   const handleOnSubmit = data => axios.patch(`/api/homes/${home.id}`, data);
 
   return (

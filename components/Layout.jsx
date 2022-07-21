@@ -81,7 +81,7 @@ const Layout = ({ children = null }) => {
                   onClick={() => {
                     session?.user ? router.push('/create') : openModal();
                   }}
-                  className="hidden sm:block hover:bg-gray-200 transition px-3 py-1 rounded-md"
+                  className="hidden sm:block text-white hover:text-black hover:bg-gray-200 transition px-3 py-1 rounded-md"
                 >
                   List your home
                 </button>

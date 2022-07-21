@@ -218,7 +218,7 @@ const AuthModal = ({ show = false, onClose = () => null }) => {
                           <Input
                             name="email"
                             type="email"
-                            placeholder="deviouslab@gmail.com"
+                            placeholder="info@deviouslab.dev"
                             disabled={disabled}
                             spellCheck={false}
                           />
