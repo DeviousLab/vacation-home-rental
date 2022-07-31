@@ -22,8 +22,9 @@ model Home {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      String?
-  owner       User     @relation(fields: [ownerId], references: [id])
+  owner       User     @relation("ListedHomes", fields: [ownerId], references: [id])
   ownerId     String
+  favoritedBy User[]   @relation("FavoriteHomes")
 }
 
 model Account {
@@ -41,8 +42,7 @@ model Account {
   session_state      String?
   oauth_token_secret String?
   oauth_token        String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -63,7 +63,8 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
-  listedHomes   Home[]
+  listedHomes   Home[]    @relation("ListedHomes")
+  favoriteHomes Home[]    @relation("FavoriteHomes")
 }
 
 model VerificationToken {
